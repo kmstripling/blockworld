@@ -1,0 +1,256 @@
+import functools
+import copy
+
+
+class board:
+
+    board = [[], [], [], []]
+    values = []
+    parent_board = []
+
+    #H(x) - Value should be calculatd as board is created.
+    h_value = 0
+
+    #G(x) - Because all nodes are derived from their parent, the g_value is always 1.
+    g_value = 1
+
+    def __init__(self):
+        self.board = [[], [], [], []]
+        self.values= []
+
+    def addBlock(self, column, value):
+        self.board[column].insert(0, value)
+        self.values.insert(0, value)
+
+    def moveBlock(self, fromColumn, toColumn):
+        try:
+            block = self.board[fromColumn].pop(0)
+            self.board[toColumn].insert(0, block)
+        except:
+            return 0
+        return 1
+
+    def setParent(self, parent_board):
+        self.parent_board = parent_board
+
+    def getParent(self):
+        return self.parent_board
+
+    def compare(self, other):
+        if functools.reduce(lambda x, y: x and y, map(lambda p, q: p == q, self.board, other.board), True):
+            return 1
+        else:
+            return 0
+
+    def expand(self, goal):
+        expanded = []
+
+        newboard1 = copy.deepcopy(self)
+        if (newboard1.moveBlock(0, 1) == 1 ):
+            newboard1.set_h_value(newboard1.find_h_value(goal))
+            newboard1.setParent(self)
+            expanded.insert(0, newboard1)
+
+        newboard2 = copy.deepcopy(self)
+        if (newboard2.moveBlock(0, 2) == 1 ):
+            newboard2.set_h_value(newboard2.find_h_value(goal))
+            newboard2.setParent(self)
+            expanded.insert(0, newboard2)
+
+        newboard3 = copy.deepcopy(self)
+        if (newboard3.moveBlock(1, 0) == 1):
+            newboard3.set_h_value(newboard3.find_h_value(goal))
+            newboard3.setParent(self)
+            expanded.insert(0, newboard3)
+
+        newboard4 = copy.deepcopy(self)
+        if (newboard4.moveBlock(1, 2) == 1):
+            newboard4.set_h_value(newboard4.find_h_value(goal))
+            newboard4.setParent(self)
+            expanded.insert(0, newboard4)
+
+        newboard5 = copy.deepcopy(self)
+        if (newboard5.moveBlock(2, 0) == 1):
+            newboard5.set_h_value(newboard5.find_h_value(goal))
+            newboard5.setParent(self)
+            expanded.insert(0, newboard5)
+
+        newboard6 = copy.deepcopy(self)
+        if (newboard6.moveBlock(2, 1) == 1):
+            newboard6.set_h_value(newboard6.find_h_value(goal))
+            newboard6.setParent(self)
+            expanded.insert(0, newboard6)
+
+        return expanded
+
+    def print(self):
+        #print(self.board)
+        for height in range(4):
+            print("| ", end="")
+            for column in range(3):
+
+                try:
+                    print(self.board[column][height], end="")
+                except:
+                    print(" ", end="")
+
+                print(" ", end="")
+            if (height == 0):
+                print("| h(x) = ", self.h_value)
+            else:
+                print("|")
+
+    #Main Heuristic to determine distance to the goal.
+    def find_h_value(self, goalboard):
+
+        h_value = 0
+
+         #Loop through each value to find it's distance
+        for value in self.values:
+
+            curValue = self.find(value)
+            goalValue = goalboard.find(value)
+            cost = 0
+
+
+
+            #If the value in the same column
+            if curValue[0] == goalValue[0]:
+                # If the value is in the same position
+                if curValue[1] == goalValue[1]:
+                    # Same Spot - Don't add anything
+                    cost = 0
+                # Else the value is in a different position
+                else:
+                    # Add the absolute difference
+                    if curValue[1] > goalValue[1]:
+                        cost = abs(curValue[1] - goalValue[1])
+                    else:
+                        cost = abs(goalValue[1] - curValue[1]) * 2
+            #Dfferent Column, add one for column movement
+            else:
+                cost = curValue[1] + goalValue[1] + 1
+
+            #print(curValue[1], goalValue[1], cost)
+
+            h_value = h_value + cost
+
+        self.h_value = h_value
+
+        return self.h_value
+
+    def get_h_value(self):
+        return self.h_value
+
+    def set_h_value(self, value):
+        self.h_value = value
+
+    def find(self, value):
+        depth = -1
+
+        for column in range(len(self.board)):
+
+            try:
+                depth = self.board[column].index(value)
+
+                if (depth != -1):
+                    break
+            except:
+                continue
+
+        return [column, depth]
+
+def printBoardSet(set):
+
+    for board in set:
+        board.print()
+        print("")
+
+def addToKnownBoards(knownBoards, solutionQueue, newboard):
+
+    found_flg = 0
+
+    for board in knownBoards:
+        if newboard.compare(board) == 1:
+            found_flg = 1
+            break
+
+    if found_flg == 0:
+        knownBoards.insert(0, newboard)
+        addToSolutionQueue(solutionQueue, newboard)
+
+def addToSolutionQueue(solutionQueue, newboard):
+
+    i = 0
+    for board in solutionQueue:
+        if (newboard.get_h_value() <= board.get_h_value()):
+            solutionQueue.insert(i, newboard)
+            break
+        else:
+            i = i + 1
+
+    if i == len(solutionQueue):
+        solutionQueue.insert(i, newboard)
+
+def addSetToKnownBoards(knownBoards, solutionQueue, set):
+
+    for board in set:
+        addToKnownBoards(knownBoards, solutionQueue, board)
+
+def printKnownboards(knownBoards):
+    print("Known Boards:")
+    for board in knownBoards:
+        board.print()
+
+def printSolutionQueue(solutionQueue):
+
+    print("Solution Queue:")
+    for board in solutionQueue:
+        board.print()
+
+#Begin Application
+knownBoards = []
+solutionQueue = []
+
+print("Welcome to the Block World Game!")
+print("---------------------------------")
+
+print("Goal Board:")
+goal = board()
+goal.addBlock(1,'C')
+goal.addBlock(1,'B')
+goal.addBlock(1,'A')
+goal.addBlock(1,'D')
+goal.print()
+
+print("Start Board:")
+start = board()
+start.addBlock(1,'A')
+start.addBlock(2,'B')
+start.addBlock(0,'C')
+start.addBlock(0,'D')
+start.set_h_value(start.find_h_value(goal))
+start.print()
+addToKnownBoards(knownBoards, solutionQueue, start)
+
+moves = 0
+
+current = solutionQueue.pop(0)
+#Copy the start state to a new object.
+current = copy.deepcopy(start)
+
+while(current.compare(goal) == 0):
+
+   # print("Current Board:")
+    #current.print()
+    expanded = current.expand(goal)
+    addSetToKnownBoards(knownBoards, solutionQueue, expanded)
+    #printSolutionQueue(solutionQueue)
+
+    current = solutionQueue.pop(0)
+
+print("Solution Key!")
+
+while (current.compare(start) != 1):
+    current.print()
+    current = current.getParent();
